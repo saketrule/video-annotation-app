@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Video Annotation App</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+  <meta http-equiv="Pragma" content="no-cache" />
+  <meta http-equiv="Expires" content="0" />
+</head>
+<body class="bg-gray-100 min-h-screen flex flex-col">
+  <div id="root"></div>
+  <div class="container mx-auto p-4 max-w-4xl">
+    <h1 class="text-2xl font-bold mb-4 text-center">Video Annotation App</h1>
+
+    <!-- Video Upload and Player -->
+    <div class="mb-4">
+      <input type="file" id="videoInput" accept="video/*" class="mb-2 p-2 border rounded w-full">
+      <div class="flex gap-2 mb-2">
+        <button id="toggleSpeed" class="bg-yellow-500 text-white px-4 py-2 rounded hover:bg-yellow-600" disabled>Play 2x</button>
+      </div>
+      <video id="videoPlayer" controls class="w-full rounded shadow" style="display: none; max-height: 70vh;"></video>
+    </div>
+
+    <!-- Controls -->
+    <div class="flex flex-col sm:flex-row gap-2 mb-4">
+      <input id="commentInput" type="text" placeholder="Enter comment" class="p-2 border rounded flex-grow" disabled>
+      <select id="sentimentInput" class="p-2 border rounded" disabled>
+        <option value="Regrettable">Regrettable</option>
+        <option value="Enjoyable">Enjoyable</option>
+        <option value="Neutral" selected>Neutral</option>
+      </select>
+      <select id="topicInput" class="p-2 border rounded" disabled>
+        <option value="Finance & Crypto">Finance & Crypto</option>
+        <option value="Politics & Government">Politics & Government</option>
+        <option value="Technology & Coding">Technology & Coding</option>
+        <option value="Entertainment & Media">Entertainment & Media</option>
+        <option value="News">News</option>
+        <option value="Sports">Sports</option>
+        <option value="Health & Medical">Health & Medical</option>
+        <option value="Lifestyle & Travel">Lifestyle & Travel</option>
+        <option value="Legal">Legal</option>
+        <option value="Local Search & Weather">Local Search & Weather</option>
+        <option value="Memes">Memes</option>
+        <option value="Other">Other</option>
+      </select>
+      <button id="saveAnnotation" class="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600 disabled:bg-gray-400" disabled>Save Annotation</button>
+    </div>
+
+    <!-- Annotations Table -->
+    <div class="mb-4">
+      <h2 class="text-xl font-semibold mb-2">Annotations</h2>
+      <table id="annotationsTable" class="w-full border-collapse border">
+        <thead>
+          <tr class="bg-gray-200">
+            <th class="border p-2">Start (s)</th>
+            <th class="border p-2">End (s)</th>
+            <th class="border p-2">Comment</th>
+            <th class="border p-2">Sentiment</th>
+            <th class="border p-2">Topic</th>
+            <th class="border p-2">Actions</th>
+          </tr>
+        </thead>
+        <tbody id="annotationsBody"></tbody>
+      </table>
+    </div>
+
+    <!-- Export Button -->
+    <button id="exportAnnotations" class="bg-purple-500 text-white px-4 py-2 rounded hover:bg-purple-600">Export Annotations (CSV)</button>
+  </div>
+
+  <script>
+    const videoInput = document.getElementById('videoInput');
+    const videoPlayer = document.getElementById('videoPlayer');
+    const toggleSpeedBtn = document.getElementById('toggleSpeed');
+    const commentInput = document.getElementById('commentInput');
+    const sentimentInput = document.getElementById('sentimentInput');
+    const topicInput = document.getElementById('topicInput');
+    const saveAnnotationBtn = document.getElementById('saveAnnotation');
+    const annotationsBody = document.getElementById('annotationsBody');
+    const exportAnnotationsBtn = document.getElementById('exportAnnotations');
+
+    let annotations = [];
+    let isDoubleSpeed = false;
+
+    // Load video
+    videoInput.addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (file) {
+        const url = URL.createObjectURL(file);
+        videoPlayer.src = url;
+        videoPlayer.style.display = 'block';
+        commentInput.disabled = false;
+        sentimentInput.disabled = false;
+        topicInput.disabled = false;
+        saveAnnotationBtn.disabled = false;
+        toggleSpeedBtn.disabled = false;
+      }
+    });
+
+    // Toggle playback speed
+    toggleSpeedBtn.addEventListener('click', () => {
+      isDoubleSpeed = !isDoubleSpeed;
+      videoPlayer.playbackRate = isDoubleSpeed ? 2 : 1;
+      toggleSpeedBtn.textContent = isDoubleSpeed ? 'Play 1x' : 'Play 2x';
+    });
+
+    // Save annotation
+    saveAnnotationBtn.addEventListener('click', () => {
+      const comment = commentInput.value.trim();
+      if (comment) {
+        const endTime = videoPlayer.currentTime;
+        const sentiment = sentimentInput.value;
+        const topic = topicInput.value;
+        // Create new annotation with temporary start time (will be recomputed)
+        const newAnnotation = {
+          start: 0, // Temporary, will be updated in updateAnnotationsTable
+          end: endTime,
+          comment: comment,
+          sentiment: sentiment,
+          topic: topic
+        };
+        // Add annotation to the list
+        annotations.push(newAnnotation);
+        updateAnnotationsTable();
+        commentInput.value = '';
+        sentimentInput.value = 'Neutral'; // Reset to default
+        topicInput.value = 'News'; // Reset to default
+        commentInput.focus();
+      }
+    });
+
+    // Update annotations table
+    function updateAnnotationsTable() {
+      // Sort annotations by end time
+      annotations.sort((a, b) => a.end - b.end);
+
+      // Recompute start times: each start is the previous end (or 0 for first)
+      for (let i = 0; i < annotations.length; i++) {
+        annotations[i].start = i > 0 ? annotations[i - 1].end : 0;
+      }
+
+      annotationsBody.innerHTML = '';
+      annotations.forEach((anno, index) => {
+        const row = document.createElement('tr');
+        row.innerHTML = `
+          <td class="border p-2">${anno.start.toFixed(2)}</td>
+          <td class="border p-2">${anno.end.toFixed(2)}</td>
+          <td class="border p-2">${anno.comment}</td>
+          <td class="border p-2">${anno.sentiment}</td>
+          <td class="border p-2">${anno.topic}</td>
+          <td class="border p-2">
+            <button class="seek-btn bg-blue-500 text-white px-2 py-1 rounded hover:bg-blue-600 mr-2" data-start="${anno.start}">Seek</button>
+            <button class="delete-btn bg-red-500 text-white px-2 py-1 rounded hover:bg-red-600" data-index="${index}">Delete</button>
+          </td>
+        `;
+        annotationsBody.appendChild(row);
+      });
+
+      // Add event listeners for seek and delete buttons
+      document.querySelectorAll('.seek-btn').forEach(button => {
+        button.addEventListener('click', (e) => {
+          const startTime = parseFloat(e.target.dataset.start);
+          videoPlayer.currentTime = startTime;
+        });
+      });
+
+      document.querySelectorAll('.delete-btn').forEach(button => {
+        button.addEventListener('click', (e) => {
+          const index = parseInt(e.target.dataset.index);
+          annotations.splice(index, 1);
+          updateAnnotationsTable(); // Re-sort and recompute start times
+        });
+      });
+    }
+
+    // Export annotations as CSV
+    exportAnnotationsBtn.addEventListener('click', () => {
+      // Helper to format seconds as h:mm:s
+      const formatTime = (seconds) => {
+        const h = Math.floor(seconds / 3600);
+        const m = Math.floor((seconds % 3600) / 60);
+        const s = Math.floor(seconds % 60);
+        return `${h}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+      };
+      // Escape quotes and handle commas in comments
+      const escapeCsv = (str) => `"${str.replace(/"/g, '""')}"`;
+      // Create CSV content with new header and mapping
+      const csvContent = [
+        'Timestamp (Start) h:mm:s,Timestamp (End),Time Spent per Segment,Tag,Topic,Explain Your Tag', // New Header
+        ...annotations.map(anno => [
+          formatTime(anno.start),
+          formatTime(anno.end),
+          formatTime(anno.end - anno.start),
+          escapeCsv(anno.sentiment),
+          escapeCsv(anno.topic),
+          escapeCsv(anno.comment)
+        ].join(','))
+      ].join('\n');
+      // Create and download CSV
+      const blob = new Blob([csvContent], { type: 'text/csv' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'annotations.csv';
+      a.click();
+      URL.revokeObjectURL(url);
+    });
+  </script>
+</body>
+</html>
