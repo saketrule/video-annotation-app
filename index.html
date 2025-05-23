@@ -215,8 +215,10 @@
       const escapeCsv = (str) => `"${str.replace(/"/g, '""')}"`;
       // Create CSV content with new header and mapping
       const csvContent = [
-        'Timestamp (Start) h:mm:s,Timestamp (End),Time Spent per Segment,Tag,Topic,Explain Your Tag', // New Header
+        'Date,Video Link,Timestamp (Start) h:mm:s,Timestamp (End),Time Spent per Segment,Tag,Topic,Explain Your Tag', // New Header
         ...annotations.map(anno => [
+          new Date().toLocaleDateString('en-US', { month: 'numeric', day: 'numeric', year: 'numeric' }),
+          "",
           formatTime(anno.start),
           formatTime(anno.end),
           formatTime(anno.end - anno.start),
