@@ -17,10 +17,15 @@
     <!-- Video Upload and Player -->
     <div class="mb-4">
       <input type="file" id="videoInput" accept="video/*" class="mb-2 p-2 border rounded w-full">
+      <video id="videoPlayer" controls class="w-full rounded shadow mb-4" style="display: none; max-height: 70vh;"></video>
       <div class="flex gap-2 mb-2">
-        <button id="toggleSpeed" class="bg-yellow-500 text-white px-4 py-2 rounded hover:bg-yellow-600" disabled>Play 2x</button>
+        <span class="text-gray-700 font-medium text-center">Playback Speed</span>
+        <button id="speed1x" class="bg-yellow-500 text-white px-4 py-2 rounded hover:bg-yellow-600" disabled>1x</button>
+        <button id="speed2x" class="bg-yellow-500 text-white px-4 py-2 rounded hover:bg-yellow-600" disabled>2x</button>
+        <button id="speed3x" class="bg-yellow-500 text-white px-4 py-2 rounded hover:bg-yellow-600" disabled>3x</button>
+        <button id="speed4x" class="bg-yellow-500 text-white px-4 py-2 rounded hover:bg-yellow-600" disabled>4x</button>
+        <button id="speed5x" class="bg-yellow-500 text-white px-4 py-2 rounded hover:bg-yellow-600" disabled>5x</button>
       </div>
-      <video id="videoPlayer" controls class="w-full rounded shadow" style="display: none; max-height: 70vh;"></video>
     </div>
 
     <!-- Controls -->
@@ -68,21 +73,36 @@
 
     <!-- Export Button -->
     <button id="exportAnnotations" class="bg-purple-500 text-white px-4 py-2 rounded hover:bg-purple-600">Export Annotations (CSV)</button>
+    <button id="clearAnnotationsBtn" class="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600 ml-2">Clear Annotations</button>
   </div>
 
   <script>
     const videoInput = document.getElementById('videoInput');
     const videoPlayer = document.getElementById('videoPlayer');
-    const toggleSpeedBtn = document.getElementById('toggleSpeed');
+    const speed1xBtn = document.getElementById('speed1x');
+    const speed2xBtn = document.getElementById('speed2x');
+    const speed3xBtn = document.getElementById('speed3x');
+    const speed4xBtn = document.getElementById('speed4x');
+    const speed5xBtn = document.getElementById('speed5x');
     const commentInput = document.getElementById('commentInput');
     const sentimentInput = document.getElementById('sentimentInput');
     const topicInput = document.getElementById('topicInput');
     const saveAnnotationBtn = document.getElementById('saveAnnotation');
     const annotationsBody = document.getElementById('annotationsBody');
     const exportAnnotationsBtn = document.getElementById('exportAnnotations');
+    const clearAnnotationsBtn = document.getElementById('clearAnnotationsBtn');
 
     let annotations = [];
     let isDoubleSpeed = false;
+
+    // Load annotations from local storage on page load
+    document.addEventListener('DOMContentLoaded', () => {
+      const savedAnnotations = localStorage.getItem('videoAnnotations');
+      if (savedAnnotations) {
+        annotations = JSON.parse(savedAnnotations);
+        updateAnnotationsTable(); // Populate table with loaded data
+      }
+    });
 
     // Load video
     videoInput.addEventListener('change', (e) => {
@@ -95,16 +115,20 @@
         sentimentInput.disabled = false;
         topicInput.disabled = false;
         saveAnnotationBtn.disabled = false;
-        toggleSpeedBtn.disabled = false;
+        speed1xBtn.disabled = false;
+        speed2xBtn.disabled = false;
+        speed3xBtn.disabled = false;
+        speed4xBtn.disabled = false;
+        speed5xBtn.disabled = false;
       }
     });
 
     // Toggle playback speed
-    toggleSpeedBtn.addEventListener('click', () => {
-      isDoubleSpeed = !isDoubleSpeed;
-      videoPlayer.playbackRate = isDoubleSpeed ? 2 : 1;
-      toggleSpeedBtn.textContent = isDoubleSpeed ? 'Play 1x' : 'Play 2x';
-    });
+    speed1xBtn.addEventListener('click', () => { videoPlayer.playbackRate = 1; });
+    speed2xBtn.addEventListener('click', () => { videoPlayer.playbackRate = 2; });
+    speed3xBtn.addEventListener('click', () => { videoPlayer.playbackRate = 3; });
+    speed4xBtn.addEventListener('click', () => { videoPlayer.playbackRate = 4; });
+    speed5xBtn.addEventListener('click', () => { videoPlayer.playbackRate = 5; });
 
     // Save annotation
     saveAnnotationBtn.addEventListener('click', () => {
@@ -173,6 +197,9 @@
           updateAnnotationsTable(); // Re-sort and recompute start times
         });
       });
+
+      // Save annotations to local storage after every update
+      localStorage.setItem('videoAnnotations', JSON.stringify(annotations));
     }
 
     // Export annotations as CSV
@@ -206,6 +233,13 @@
       a.download = 'annotations.csv';
       a.click();
       URL.revokeObjectURL(url);
+    });
+
+    // Clear annotations
+    clearAnnotationsBtn.addEventListener('click', () => {
+      annotations = [];
+      updateAnnotationsTable(); // This will clear the table and save the empty array to localStorage
+      localStorage.removeItem('videoAnnotations'); // Ensure it's completely removed
     });
   </script>
 </body>
