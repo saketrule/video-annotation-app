@@ -165,7 +165,12 @@
         commentInput.focus();
       }
     });
-
+    function formatTime(seconds) {
+        const h = Math.floor(seconds / 3600);
+        const m = Math.floor((seconds % 3600) / 60);
+        const s = Math.floor(seconds % 60);
+        return `${h}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+      };
     // Update annotations table
     function updateAnnotationsTable() {
       // Sort annotations by end time
@@ -180,8 +185,8 @@
       annotations.forEach((anno, index) => {
         const row = document.createElement('tr');
         row.innerHTML = `
-          <td class="border p-2">${anno.start.toFixed(2)}</td>
-          <td class="border p-2">${anno.end.toFixed(2)}</td>
+          <td class="border p-2">${formatTime(anno.start)}</td>
+          <td class="border p-2">${formatTime(anno.end)}</td>
           <td class="border p-2">${anno.comment}</td>
           <td class="border p-2">${anno.sentiment}</td>
           <td class="border p-2">${anno.topic}</td>
@@ -229,13 +234,6 @@
 
     // Export annotations as CSV
     exportAnnotationsBtn.addEventListener('click', () => {
-      // Helper to format seconds as h:mm:s
-      const formatTime = (seconds) => {
-        const h = Math.floor(seconds / 3600);
-        const m = Math.floor((seconds % 3600) / 60);
-        const s = Math.floor(seconds % 60);
-        return `${h}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
-      };
       // Escape quotes and handle commas in comments
       const escapeCsv = (str) => `"${str.replace(/"/g, '""')}"`;
       // Create CSV content with new header and mapping
