@@ -120,15 +120,26 @@
         speed3xBtn.disabled = false;
         speed4xBtn.disabled = false;
         speed5xBtn.disabled = false;
+        setActiveSpeedButton(speed1xBtn);
       }
     });
 
     // Toggle playback speed
-    speed1xBtn.addEventListener('click', () => { videoPlayer.playbackRate = 1; });
-    speed2xBtn.addEventListener('click', () => { videoPlayer.playbackRate = 2; });
-    speed3xBtn.addEventListener('click', () => { videoPlayer.playbackRate = 3; });
-    speed4xBtn.addEventListener('click', () => { videoPlayer.playbackRate = 4; });
-    speed5xBtn.addEventListener('click', () => { videoPlayer.playbackRate = 5; });
+    function setActiveSpeedButton(activeBtn) {
+      const speedButtons = [speed1xBtn, speed2xBtn, speed3xBtn, speed4xBtn, speed5xBtn];
+      speedButtons.forEach(btn => {
+        btn.classList.remove('bg-yellow-700', 'font-bold');
+        btn.classList.add('bg-yellow-500');
+      });
+      activeBtn.classList.remove('bg-yellow-500');
+      activeBtn.classList.add('bg-yellow-700', 'font-bold');
+    }
+
+    speed1xBtn.addEventListener('click', () => { videoPlayer.playbackRate = 1; setActiveSpeedButton(speed1xBtn); });
+    speed2xBtn.addEventListener('click', () => { videoPlayer.playbackRate = 2; setActiveSpeedButton(speed2xBtn); });
+    speed3xBtn.addEventListener('click', () => { videoPlayer.playbackRate = 3; setActiveSpeedButton(speed3xBtn); });
+    speed4xBtn.addEventListener('click', () => { videoPlayer.playbackRate = 4; setActiveSpeedButton(speed4xBtn); });
+    speed5xBtn.addEventListener('click', () => { videoPlayer.playbackRate = 5; setActiveSpeedButton(speed5xBtn); });
 
     // Save annotation
     saveAnnotationBtn.addEventListener('click', () => {
@@ -176,6 +187,7 @@
           <td class="border p-2">${anno.topic}</td>
           <td class="border p-2">
             <button class="seek-btn bg-blue-500 text-white px-2 py-1 rounded hover:bg-blue-600 mr-2" data-start="${anno.start}">Seek</button>
+            <button class="edit-btn bg-yellow-500 text-white px-2 py-1 rounded hover:bg-yellow-600 mr-2" data-index="${index}">Edit</button>
             <button class="delete-btn bg-red-500 text-white px-2 py-1 rounded hover:bg-red-600" data-index="${index}">Delete</button>
           </td>
         `;
@@ -187,6 +199,19 @@
         button.addEventListener('click', (e) => {
           const startTime = parseFloat(e.target.dataset.start);
           videoPlayer.currentTime = startTime;
+        });
+      });
+
+      document.querySelectorAll('.edit-btn').forEach(button => {
+        button.addEventListener('click', (e) => {
+          const index = parseInt(e.target.dataset.index);
+          const annotation = annotations[index];
+          commentInput.value = annotation.comment;
+          sentimentInput.value = annotation.sentiment;
+          topicInput.value = annotation.topic;
+          videoPlayer.currentTime = annotation.end; // Seek to end time
+          annotations.splice(index, 1);
+          updateAnnotationsTable();
         });
       });
 
@@ -215,7 +240,7 @@
       const escapeCsv = (str) => `"${str.replace(/"/g, '""')}"`;
       // Create CSV content with new header and mapping
       const csvContent = [
-        'Date,Video Link,Timestamp (Start) h:mm:s,Timestamp (End),Time Spent per Segment,Tag,Topic,Explain Your Tag', // New Header
+        'Date,Video Link,Timestamp (Start),Timestamp (End),Time Spent per Segment,Tag,Topic,Sentiment Reason, If Regrettable add post link', // New Header
         ...annotations.map(anno => [
           new Date().toLocaleDateString('en-US', { month: 'numeric', day: 'numeric', year: 'numeric' }),
           "",
@@ -224,7 +249,8 @@
           formatTime(anno.end - anno.start),
           escapeCsv(anno.sentiment),
           escapeCsv(anno.topic),
-          escapeCsv(anno.comment)
+          escapeCsv(anno.comment),
+          ""
         ].join(','))
       ].join('\n');
       // Create and download CSV
@@ -243,6 +269,17 @@
       updateAnnotationsTable(); // This will clear the table and save the empty array to localStorage
       localStorage.removeItem('videoAnnotations'); // Ensure it's completely removed
     });
+
+    // Add scroll-to-seek functionality
+    videoPlayer.addEventListener('wheel', (e) => {
+      e.preventDefault(); // Prevent page from scrolling
+      const SEEK_AMOUNT = 0.2 * videoPlayer.playbackRate; // seconds per scroll "tick"
+      if (e.deltaY > 0) {
+        videoPlayer.currentTime = Math.min(videoPlayer.duration || 0, videoPlayer.currentTime + SEEK_AMOUNT);
+      } else if (e.deltaY < 0) {
+        videoPlayer.currentTime = Math.max(0, videoPlayer.currentTime - SEEK_AMOUNT);
+      }
+    }, { passive: false });
   </script>
 </body>
 </html>
