@@ -31,24 +31,24 @@
     <!-- Controls -->
     <div class="flex flex-col sm:flex-row gap-2 mb-4">
       <input id="commentInput" type="text" placeholder="Enter comment" class="p-2 border rounded flex-grow" disabled>
+      <select id="scrollTypeInput" class="p-2 border rounded" disabled>
+        <option value="Scrolled Past" selected>Scrolled Past</option>
+        <option value="Caught Eye">Caught Eye</option>
+      </select>
       <select id="sentimentInput" class="p-2 border rounded" disabled>
-        <option value="Regrettable">Regrettable</option>
         <option value="Enjoyable">Enjoyable</option>
         <option value="Neutral" selected>Neutral</option>
+        <option value="Not Enjoyable">Not Enjoyable</option>
       </select>
-      <select id="topicInput" class="p-2 border rounded" disabled>
-        <option value="Finance & Crypto">Finance & Crypto</option>
-        <option value="Politics & Government">Politics & Government</option>
-        <option value="Technology & Coding">Technology & Coding</option>
-        <option value="Entertainment & Media">Entertainment & Media</option>
-        <option value="News">News</option>
-        <option value="Sports">Sports</option>
-        <option value="Health & Medical">Health & Medical</option>
-        <option value="Lifestyle & Travel">Lifestyle & Travel</option>
-        <option value="Legal">Legal</option>
-        <option value="Local Search & Weather">Local Search & Weather</option>
-        <option value="Memes">Memes</option>
-        <option value="Other">Other</option>
+      <select id="postQualityInput" class="p-2 border rounded" disabled>
+        <option value="High quality (thoughtful)">High quality (thoughtful)</option>
+        <option value="Average quality" selected>Average quality</option>
+        <option value="Low Quality (clickbait)">Low Quality (clickbait)</option>
+      </select>
+      <select id="mediaTypeInput" class="p-2 border rounded" disabled>
+        <option value="Text">Text</option>
+        <option value="Image" selected>Image</option>
+        <option value="Video">Video</option>
       </select>
       <button id="saveAnnotation" class="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600 disabled:bg-gray-400" disabled>Save Annotation</button>
     </div>
@@ -63,7 +63,9 @@
             <th class="border p-2">End (s)</th>
             <th class="border p-2">Comment</th>
             <th class="border p-2">Sentiment</th>
-            <th class="border p-2">Topic</th>
+            <th class="border p-2">Scroll Type</th>
+            <th class="border p-2">Post Quality</th>
+            <th class="border p-2">Media Type</th>
             <th class="border p-2">Actions</th>
           </tr>
         </thead>
@@ -86,7 +88,9 @@
     const speed5xBtn = document.getElementById('speed5x');
     const commentInput = document.getElementById('commentInput');
     const sentimentInput = document.getElementById('sentimentInput');
-    const topicInput = document.getElementById('topicInput');
+    const scrollTypeInput = document.getElementById('scrollTypeInput');
+    const postQualityInput = document.getElementById('postQualityInput');
+    const mediaTypeInput = document.getElementById('mediaTypeInput');
     const saveAnnotationBtn = document.getElementById('saveAnnotation');
     const annotationsBody = document.getElementById('annotationsBody');
     const exportAnnotationsBtn = document.getElementById('exportAnnotations');
@@ -113,7 +117,9 @@
         videoPlayer.style.display = 'block';
         commentInput.disabled = false;
         sentimentInput.disabled = false;
-        topicInput.disabled = false;
+        scrollTypeInput.disabled = false;
+        postQualityInput.disabled = false;
+        mediaTypeInput.disabled = false;
         saveAnnotationBtn.disabled = false;
         speed1xBtn.disabled = false;
         speed2xBtn.disabled = false;
@@ -147,21 +153,27 @@
       if (comment) {
         const endTime = videoPlayer.currentTime;
         const sentiment = sentimentInput.value;
-        const topic = topicInput.value;
+        const scrollType = scrollTypeInput.value;
+        const postQuality = postQualityInput.value;
+        const mediaType = mediaTypeInput.value;
         // Create new annotation with temporary start time (will be recomputed)
         const newAnnotation = {
           start: 0, // Temporary, will be updated in updateAnnotationsTable
           end: endTime,
           comment: comment,
           sentiment: sentiment,
-          topic: topic
+          scrollType: scrollType,
+          postQuality: postQuality,
+          mediaType: mediaType
         };
         // Add annotation to the list
         annotations.push(newAnnotation);
         updateAnnotationsTable();
         commentInput.value = '';
         sentimentInput.value = 'Neutral'; // Reset to default
-        topicInput.value = 'News'; // Reset to default
+        scrollTypeInput.value = 'Scrolled Past'; // Reset to default
+        postQualityInput.value = 'Average quality'; // Reset to default
+        mediaTypeInput.value = 'Image'; // Reset to default
         commentInput.focus();
       }
     });
@@ -189,7 +201,9 @@
           <td class="border p-2">${formatTime(anno.end)}</td>
           <td class="border p-2">${anno.comment}</td>
           <td class="border p-2">${anno.sentiment}</td>
-          <td class="border p-2">${anno.topic}</td>
+          <td class="border p-2">${anno.scrollType || 'Scrolled Past'}</td>
+          <td class="border p-2">${anno.postQuality || 'Average quality'}</td>
+          <td class="border p-2">${anno.mediaType || 'Image'}</td>
           <td class="border p-2">
             <button class="seek-btn bg-blue-500 text-white px-2 py-1 rounded hover:bg-blue-600 mr-2" data-start="${anno.start}">Seek</button>
             <button class="edit-btn bg-yellow-500 text-white px-2 py-1 rounded hover:bg-yellow-600 mr-2" data-index="${index}">Edit</button>
@@ -213,7 +227,9 @@
           const annotation = annotations[index];
           commentInput.value = annotation.comment;
           sentimentInput.value = annotation.sentiment;
-          topicInput.value = annotation.topic;
+          scrollTypeInput.value = annotation.scrollType || 'Scrolled Past';
+          postQualityInput.value = annotation.postQuality || 'Average quality';
+          mediaTypeInput.value = annotation.mediaType || 'Image';
           videoPlayer.currentTime = annotation.end; // Seek to end time
           annotations.splice(index, 1);
           updateAnnotationsTable();
@@ -238,7 +254,7 @@
       const escapeCsv = (str) => `"${str.replace(/"/g, '""')}"`;
       // Create CSV content with new header and mapping
       const csvContent = [
-        'Date,Video Link,Timestamp (Start),Timestamp (End),Time Spent per Segment,Tag,Topic,Sentiment Reason, If Regrettable add post link', // New Header
+        'Date,Video Link,Timestamp (Start),Timestamp (End),Time Spent per Segment,Sentiment,Sentiment Reason,Scroll Type,Post Quality,Media Type, If Regrettable add post link', // New Header
         ...annotations.map(anno => [
           new Date().toLocaleDateString('en-US', { month: 'numeric', day: 'numeric', year: 'numeric' }),
           "",
@@ -246,8 +262,10 @@
           formatTime(anno.end),
           formatTime(anno.end - anno.start),
           escapeCsv(anno.sentiment),
-          escapeCsv(anno.topic),
           escapeCsv(anno.comment),
+          escapeCsv(anno.scrollType || 'Scrolled Past'),
+          escapeCsv(anno.postQuality || 'Average quality'),
+          escapeCsv(anno.mediaType || 'Image'),
           ""
         ].join(','))
       ].join('\n');
